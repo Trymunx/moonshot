@@ -1,4 +1,5 @@
 import * as PIXI from "pixi.js";
+import { CrashInstance, CrashProps, PhysicalBody, PhysicalBodyOptions } from "./types";
 
 const AIR_RESISTANCE = 0.05;
 const RESISTANCE = 0.5;
@@ -9,23 +10,6 @@ const LANDING_RADIUS = 1;
 const LANDING_VELOCITY = 1;
 const DRAG_MODIFIER = 0.05;
 
-interface IPhysicalBody {
-  initialPosition?: PIXI.Point;
-  radius: number;
-  sprite: PIXI.Sprite;
-  velocity?: PIXI.Point;
-}
-
-interface IPhysicalBodyProps {
-  anchor?: PIXI.Point;
-  buttonMode?: boolean;
-  initialPosition?: PIXI.Point;
-  interactive?: boolean;
-  rotation?: number;
-  scale?: PIXI.Point;
-  texture: PIXI.Texture;
-  velocity?: PIXI.Point;
-}
 const newPhysicalBody = ({
   anchor,
   buttonMode = false,
@@ -35,7 +19,7 @@ const newPhysicalBody = ({
   scale,
   texture,
   velocity = new PIXI.Point(),
-}: IPhysicalBodyProps): IPhysicalBody => {
+}: PhysicalBodyOptions): PhysicalBody => {
   const sprite = new PIXI.Sprite(texture);
   sprite.anchor.set(anchor.x || 0, anchor.y);
   sprite.buttonMode = buttonMode;
@@ -77,28 +61,28 @@ loader.onComplete.add(() => {
   app.renderer.autoDensity = true;
   document.body.appendChild(app.view);
 
-  const updateVelocity = (body: IPhysicalBody, x: number, y = x) => {
+  const updateVelocity = (body: PhysicalBody, x: number, y = x) => {
     body.velocity.set(x, y);
   };
 
-  const reset = (body: IPhysicalBody) => {
+  const reset = (body: PhysicalBody) => {
     body.sprite.x = body.initialPosition.x;
     body.sprite.y = body.initialPosition.y;
     updateVelocity(body, 0, 0);
     body.sprite.rotation = Math.PI * 2;
   };
 
-  const moon: IPhysicalBody = newPhysicalBody({
+  const moon: PhysicalBody = newPhysicalBody({
     anchor: new PIXI.Point(0.5, 0.5),
     initialPosition: new PIXI.Point(app.view.width / 2, app.view.height / 2),
     scale: new PIXI.Point(0.6, 0.65),
     texture: textures["moon"],
   });
 
-  const spaceship: IPhysicalBody = newPhysicalBody({
+  const spaceship: PhysicalBody = newPhysicalBody({
     anchor: new PIXI.Point(0.5),
     buttonMode: true,
-    initialPosition: new PIXI.Point(Math.random() * app.view.width, Math.random() * app.view.height),
+    initialPosition: new PIXI.Point(0.1 * app.view.width, 0.9 * app.view.height),
     interactive: true,
     scale: new PIXI.Point(0.3, 0.3),
     texture: textures["spaceship"],
@@ -111,17 +95,8 @@ loader.onComplete.add(() => {
     .on("pointerupoutside", onDragEnd)
     .on("pointermove", onDragMove);
 
-  interface ICrashInstance {
-    duration: number;
-    sprite: PIXI.Sprite;
-  }
-  const crashes: ICrashInstance[] = [];
+  const crashes: CrashInstance[] = [];
 
-  type CrashProps = {
-    duration: number;
-    x: number;
-    y: number;
-  };
   const addCrash = ({ x, y, duration }: CrashProps) => {
     const crash = new PIXI.Sprite(textures["crash"]);
     crash.x = x;
@@ -162,7 +137,8 @@ loader.onComplete.add(() => {
       Math.cos(angle) * DRAG_MODIFIER * distance,
       Math.sin(angle) * DRAG_MODIFIER * distance,
     );
-    spaceship.sprite.rotation = Math.PI / 2 + Math.atan2(spaceship.velocity.y, spaceship.velocity.x);
+    spaceship.sprite.rotation =
+      Math.PI / 2 + Math.atan2(spaceship.velocity.y, spaceship.velocity.x);
     // console.log(distance, angle);
   });
 
@@ -190,7 +166,7 @@ loader.onComplete.add(() => {
     this.dragging = true;
   }
 
-  const isInBounds = (body: IPhysicalBody) => {
+  const isInBounds = (body: PhysicalBody) => {
     const sb = body.sprite.getBounds();
     const width = app.view.width;
     const height = app.view.height;
@@ -206,7 +182,7 @@ loader.onComplete.add(() => {
 
   const angleToPoint = (p1: IPoint, p2: IPoint) => Math.atan2(p1.y - p2.y, p1.x - p2.x);
 
-  const distToSurface = (b1: IPhysicalBody, b2: IPhysicalBody) =>
+  const distToSurface = (b1: PhysicalBody, b2: PhysicalBody) =>
     dist(b1.sprite, b2.sprite) - (b1.radius + b2.radius);
 
   // console.log(spaceship.sprite.getBounds());
@@ -219,10 +195,10 @@ loader.onComplete.add(() => {
   // console.log(app.view.width, app.view.height);
   // console.log(isInBounds(spaceship));
 
-  const averageAngle = (a: number, b: number) => Math.atan2(
-    (Math.sin(a) + Math.sin(b)) / 2,
-    (Math.cos(a) + Math.cos(b)) / 2,
-  );
+  // const averageAngle = (a: number, b: number) => Math.atan2(
+  //   (Math.sin(a) + Math.sin(b)) / 2,
+  //   (Math.cos(a) + Math.cos(b)) / 2,
+  // );
 
   app.ticker.add(delta => {
     // moon.sprite.rotation -= 0.01;
@@ -300,8 +276,10 @@ loader.onComplete.add(() => {
         Math.PI / 2 + Math.atan2(spaceship.velocity.y, spaceship.velocity.x);
     } else if (distance < moon.sprite.width * GRAVITY_RADIUS) {
       spaceship.velocity.set(
-        spaceship.velocity.x + (1 - RESISTANCE) * -Math.cos(angleToPoint(spaceship.sprite, moon.sprite)),
-        spaceship.velocity.y + (1 - RESISTANCE) * -Math.sin(angleToPoint(spaceship.sprite, moon.sprite)),
+        spaceship.velocity.x + (1 - RESISTANCE)
+        * -Math.cos(angleToPoint(spaceship.sprite, moon.sprite)),
+        spaceship.velocity.y + (1 - RESISTANCE)
+        * -Math.sin(angleToPoint(spaceship.sprite, moon.sprite)),
       );
 
       spaceship.sprite.rotation =
