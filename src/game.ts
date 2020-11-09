@@ -104,33 +104,17 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
   });
 
   app.ticker.add(delta => {
-    earth.sprite.rotation += 0.01;
+    const rotation = 0.01;
+    earth.sprite.rotation += rotation;
     // moon.sprite.rotation -= 0.01;
     const distance = distToSurface(moon, rocket);
     const speed = calculateSpeed(rocket.velocity);
 
     if (distToSurface(earth, rocket) < 100) {
       rocket.sprite.rotation = Math.PI + angleToPoint(earth.sprite, rocket.sprite);
-
-      const rotation = 0.01;
-      const x2 = rocket.sprite.x * Math.cos(rotation) + rocket.sprite.y * Math.sin(rotation);
-      const y2 = rocket.sprite.x * Math.sin(rotation) + rocket.sprite.y * Math.cos(rotation);
-
-      // rocket.sprite.x = x2;
-      // rocket.sprite.y = y2;
-
-
-      // const hyp = 2 * earth.radius ** 2 - 2 * earth.radius ** 2 * Math.cos(rotation);
-      // rocket.sprite.x = Math.cos(earth.sprite.rotation);
-      // rocket.sprite.y = Math.sin(earth.sprite.rotation);
-      // rocket.sprite.x = earth.radius * Math.cos(rotation) - earth.radius * Math.sin(rotation);
-      // rocket.sprite.y = earth.radius * Math.sin(rotation) - earth.radius * Math.cos(rotation);
-      // const hyp = 2 * earth.radius * Math.cos((Math.PI - 0.01) / 2);
-      // const angle = Math.PI / 2 - ((Math.PI - 0.01) / 2);
-      // const adj = hyp * Math.acos(angle);
-      // const opp = hyp * Math.asin(angle);
-      // rocket.sprite.x += adj;
-      // rocket.sprite.y += opp;
+      const angle = angleToPoint(earth.sprite, rocket.sprite) + rotation;
+      rocket.sprite.x = rocket.sprite.x + earth.radius * Math.cos(angle);
+      rocket.sprite.y = rocket.sprite.y - earth.radius * Math.sin(angle);
     } else if (distance <= 0 && speed > 8) {
       const { x, y } = rocket.sprite;
       addCrash({ duration: 100, x, y });
