@@ -5,17 +5,6 @@ export interface PhysicalBody {
   velocity?: PIXI.Point;
 }
 
-export interface PhysicalBodyOptions {
-  anchor?: PIXI.Point;
-  buttonMode?: boolean;
-  initialPosition: PIXI.Point;
-  interactive?: boolean;
-  rotation?: number;
-  scale?: PIXI.Point;
-  texture: PIXI.Texture;
-  velocity?: PIXI.Point;
-}
-
 export type Rect = {
   height: number;
   width: number;

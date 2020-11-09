@@ -1,5 +1,5 @@
 import * as PIXI from "pixi.js";
-import { PhysicalBody, PhysicalBodyOptions, Point, Rect, Vector } from "./types";
+import { PhysicalBody, Point, Rect, Vector } from "./types";
 
 /**
  * angleFromVector takes a velocity vector and returns the angle of the vector.
@@ -25,29 +25,40 @@ export const isInBounds = (body: PhysicalBody, { height, width }: Rect): boolean
   return sb.x > 0 && sb.x + sb.width < width && sb.y > 0 && sb.y + sb.height < height;
 };
 
+interface PhysicalBodyOptions {
+  anchor?: PIXI.Point;
+  buttonMode?: boolean;
+  initialPosition: PIXI.Point;
+  interactive?: boolean;
+  rotation?: number;
+  scale?: PIXI.Point;
+  texture: PIXI.Texture;
+  velocity?: PIXI.Point;
+}
+
 export const newPhysicalBody = ({
-  anchor,
-  buttonMode,
+  anchor = new PIXI.Point(),
+  buttonMode = false,
   initialPosition,
-  interactive,
-  rotation,
-  scale,
+  interactive = false,
+  rotation = 0,
+  scale = new PIXI.Point(1),
   texture,
-  velocity,
+  velocity = new PIXI.Point(),
 }: PhysicalBodyOptions): PhysicalBody => {
   const sprite = new PIXI.Sprite(texture);
-  sprite.anchor.set(anchor.x || 0, anchor.y);
-  sprite.buttonMode = buttonMode || false;
-  sprite.interactive = interactive || false;
-  sprite.rotation = rotation || 0;
-  sprite.scale.set(scale.x || 1, scale.y || 1);
+  sprite.anchor.set(anchor.x, anchor.y);
+  sprite.buttonMode = buttonMode;
+  sprite.interactive = interactive;
+  sprite.rotation = rotation;
+  sprite.scale.set(scale.x, scale.y);
   sprite.x = initialPosition.x;
   sprite.y = initialPosition.y;
   return {
     initialPosition,
     radius: Math.min(sprite.width, sprite.height) / 2,
     sprite,
-    velocity: velocity || new PIXI.Point,
+    velocity: velocity,
   };
 };
 
