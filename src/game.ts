@@ -112,9 +112,8 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
 
     if (distToSurface(earth, rocket) < 100) {
       rocket.sprite.rotation = Math.PI + angleToPoint(earth.sprite, rocket.sprite);
-      const angle = angleToPoint(earth.sprite, rocket.sprite) + rotation;
-      rocket.sprite.x = rocket.sprite.x + earth.radius * Math.cos(angle);
-      rocket.sprite.y = rocket.sprite.y - earth.radius * Math.sin(angle);
+      rocket.sprite.x = earth.sprite.x + earth.radius * Math.cos(earth.sprite.rotation);
+      rocket.sprite.y = earth.sprite.y + earth.radius * Math.sin(earth.sprite.rotation);
     } else if (distance <= 0 && speed > 8) {
       const { x, y } = rocket.sprite;
       addCrash({ duration: 100, x, y });
