@@ -41,12 +41,12 @@ interface PhysicalBodyOptions {
 }
 
 export const newPhysicalBody = ({
-  anchor = new PIXI.Point(),
+  anchor = new PIXI.Point(0.5, 0.5),
   buttonMode = false,
   initialPosition,
   interactive = false,
   rotation = 0,
-  scale = new PIXI.Point(1),
+  scale = new PIXI.Point(1, 1),
   texture,
   velocity = new PIXI.Point(),
 }: PhysicalBodyOptions): PhysicalBody => {
