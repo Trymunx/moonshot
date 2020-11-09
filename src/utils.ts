@@ -24,6 +24,10 @@ export const isInBounds = (body: PhysicalBody, { height, width }: Rect): boolean
   const sb = body.sprite.getBounds();
   return sb.x > 0 && sb.x + sb.width < width && sb.y > 0 && sb.y + sb.height < height;
 };
+export const outOfBounds = (body: PhysicalBody, { height, width }: Rect): boolean => {
+  const sb = body.sprite.getBounds();
+  return sb.x < 0 - width || sb.x > width * 2 || sb.y < 0 - height || sb.y > height * 2;
+};
 
 interface PhysicalBodyOptions {
   anchor?: PIXI.Point;

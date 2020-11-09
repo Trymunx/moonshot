@@ -7,6 +7,7 @@ import {
   distToSurface,
   // isInBounds,
   newPhysicalBody,
+  outOfBounds,
   reset,
   updateVelocity,
 } from "./utils";
@@ -98,23 +99,6 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
   app.ticker.add(delta => {
     // moon.sprite.rotation -= 0.01;
     const distance = distToSurface(moon, rocket);
-
-    for (let i = crashes.length; i >= 0; i--) {
-      const crash = crashes[i];
-      if (crash === undefined) {
-        continue;
-      }
-      if (crash.duration < 0) {
-        crashes.splice(i, 1);
-        app.stage.removeChild(crash.sprite);
-        reset(rocket);
-      } else {
-        crash.sprite.scale.set(Math.min(crash.sprite.scale.x + 0.1, 2));
-        crash.sprite.alpha -= 0.01;
-        crash.duration -= delta;
-      }
-    }
-
     const speed = calculateSpeed(rocket.velocity);
 
     if (distance <= 0 && speed > 8) {
@@ -175,8 +159,24 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
     rocket.sprite.x += rocket.velocity.x * delta;
     rocket.sprite.y += rocket.velocity.y * delta;
 
-    // if (!isInBounds(rocket, app.view)) {
-    //   reset(rocket);
-    // }
+
+    for (let i = crashes.length; i >= 0; i--) {
+      const crash = crashes[i];
+      if (crash === undefined) {
+        continue;
+      }
+      if (crash.duration < 0) {
+        crashes.splice(i, 1);
+        app.stage.removeChild(crash.sprite);
+        reset(rocket);
+      } else {
+        crash.sprite.scale.set(Math.min(crash.sprite.scale.x + 0.1, 2));
+        crash.sprite.alpha -= 0.01;
+        crash.duration -= delta;
+      }
+    }
+    if (outOfBounds(rocket, app.view)) {
+      reset(rocket);
+    }
   });
 };
