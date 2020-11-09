@@ -5,5 +5,5 @@ made with Pixi.js and Typescript. The theme of the game off was "moonshot", whic
 and decided to make a game about landing on the moon.
 
 ### To run development build
-This project uses parcel, so with that installed globally you can run `parcel index.html` and visit
+This project uses parcel, so with that installed globally you can run `parcel src/index.html` and visit
 http://localhost:1234 to see the running game.
