@@ -18,14 +18,13 @@ import {
   PhysicalBody,
 } from "./types";
 
-const AIR_RESISTANCE = 0.05;
-const RESISTANCE = 0.5;
-const GRAVITY = 0.1;
-const GRAVITY_RADIUS = 5;
+const AIR_RESISTANCE = 0.04;
+const RESISTANCE = 0.7;
+const GRAVITY = 0.05;
 const AIR_RESISTANCE_RADIUS = 2.5;
 const LANDING_RADIUS = 1;
 const LANDING_VELOCITY = 1;
-const DRAG_MODIFIER = 0.05;
+const DRAG_MODIFIER = 0.02;
 
 export const runGame = (textures: Record<string, PIXI.Texture | undefined>): void => {
   const app = new PIXI.Application({
@@ -86,12 +85,12 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
     draggingData.start = { x, y };
   });
   app.stage.on("pointerup", (e: PIXI.InteractionEvent) => {
-    const distance = Math.min(200, dist(draggingData.start, e.data.global));
+    const distance = dist(draggingData.start, e.data.global) * DRAG_MODIFIER;
     const angle = angleToPoint(draggingData.start, e.data.global);
     updateVelocity(
       rocket,
-      Math.cos(angle) * DRAG_MODIFIER * distance,
-      Math.sin(angle) * DRAG_MODIFIER * distance,
+      Math.cos(angle) * distance,
+      Math.sin(angle) * distance,
     );
     rocket.sprite.rotation = angleFromVector(rocket.velocity);
   });
@@ -140,12 +139,10 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
       );
 
       rocket.sprite.rotation = angleFromVector(rocket.velocity);
-    } else if (distance < moon.sprite.width * GRAVITY_RADIUS) {
+    } else {
       rocket.velocity.set(
-        rocket.velocity.x + (1 - RESISTANCE)
-        * -Math.cos(angleToPoint(rocket.sprite, moon.sprite)),
-        rocket.velocity.y + (1 - RESISTANCE)
-        * -Math.sin(angleToPoint(rocket.sprite, moon.sprite)),
+        rocket.velocity.x + (1 - RESISTANCE) * -Math.cos(angleToPoint(rocket.sprite, moon.sprite)),
+        rocket.velocity.y + (1 - RESISTANCE) * -Math.sin(angleToPoint(rocket.sprite, moon.sprite)),
       );
 
       rocket.sprite.rotation = angleFromVector(rocket.velocity);
