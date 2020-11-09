@@ -76,7 +76,6 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
     app.stage.addChild(crash);
   };
 
-
   // Handle dragging for launching rocket
   const draggingData: DraggingData = {};
   app.stage.interactive = true;
@@ -108,6 +107,7 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
       if (crash.duration < 0) {
         crashes.splice(i, 1);
         app.stage.removeChild(crash.sprite);
+        reset(rocket);
       } else {
         crash.sprite.scale.set(Math.min(crash.sprite.scale.x + 0.1, 2));
         crash.sprite.alpha -= 0.01;
@@ -167,9 +167,9 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
       rocket.sprite.rotation = angleFromVector(rocket.velocity);
 
       rocket.sprite.x +=
-        rocket.velocity.x * delta / (Math.max(10, distToSurface(moon, rocket)) * GRAVITY);
+        rocket.velocity.x * delta / (distToSurface(moon, rocket) * GRAVITY);
       rocket.sprite.y +=
-        rocket.velocity.y * delta / (Math.max(10, distToSurface(moon, rocket)) * GRAVITY);
+        rocket.velocity.y * delta / (distToSurface(moon, rocket) * GRAVITY);
     }
 
     rocket.sprite.x += rocket.velocity.x * delta;

@@ -67,6 +67,7 @@ export const reset = (body: PhysicalBody): void => {
   body.sprite.y = body.initialPosition.y;
   updateVelocity(body, 0, 0);
   body.sprite.rotation = Math.PI * 1.5;
+  body.sprite.visible = true;
 };
 
 export const updateVelocity = (body: PhysicalBody, x: number, y = x): void => {
