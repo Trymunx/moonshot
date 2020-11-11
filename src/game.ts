@@ -10,6 +10,7 @@ import {
   // isInBounds,
   newPhysicalBody,
   outOfBounds,
+  randomInt,
   randomRotation,
   randomScreenPositionInBounds,
   reset,
@@ -60,25 +61,20 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
   };
   planets.push(earth);
 
-  planets.push({
-    ...newPhysicalBody({
-      initialPosition: new PIXI.Point(
-        ...randomScreenPositionInBounds(app.view.width, app.view.height, 0.1)
-      ),
-      scale: new PIXI.Point(0.6, 0.65),
-      texture: textures["moon"],
-    }),
-    rotationSpeed: randomRotation(10),
-  }, {
-    ...newPhysicalBody({
-      initialPosition: new PIXI.Point(
-        ...randomScreenPositionInBounds(app.view.width, app.view.height, 0.1)
-      ),
-      scale: new PIXI.Point(0.6, 0.65),
-      texture: textures["moon"],
-    }),
-    rotationSpeed: randomRotation(10),
-  });
+  const numberOfMoons = randomInt(1, 4);
+  for (let i = 0; i < numberOfMoons; i++) {
+    planets.push({
+      ...newPhysicalBody({
+        initialPosition: new PIXI.Point(
+          ...randomScreenPositionInBounds(app.view.width, app.view.height, 0.1)
+        ),
+        scale: new PIXI.Point(0.6, 0.65),
+        texture: textures["moon"],
+      }),
+      rotationSpeed: randomRotation(10),
+    });
+
+  }
 
   const rocket: Rocket = {
     ...newPhysicalBody({
