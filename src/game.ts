@@ -10,7 +10,8 @@ import {
   // isInBounds,
   newPhysicalBody,
   outOfBounds,
-  randomInt,
+  randomRotation,
+  randomScreenPositionInBounds,
   reset,
   updateVelocity,
 } from "./utils";
@@ -24,16 +25,12 @@ import {
 } from "./types";
 
 const AIR_RESISTANCE = 0.02;
-// const RESISTANCE = 0.01;
-// const GRAVITY = 0.05;
 const AIR_RESISTANCE_RADIUS = 2;
 const LANDING_DISTANCE = 60;
 const LANDING_VELOCITY = 1;
 const MAX_LANDING_VELOCITY = 5;
 const DRAG_MODIFIER = 0.02;
 const THRUST_POWER = 0.01;
-
-const randomRotation = (x: number) => (Math.sign(Math.random() - 0.5) || 0) * randomInt(1, x) / 100;
 
 export const runGame = (textures: Record<string, PIXI.Texture | undefined>): void => {
   const app = new PIXI.Application({
@@ -52,9 +49,10 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
 
   const planets: Planet[] = [];
 
+  const earthInitialPosition = randomScreenPositionInBounds(app.view.width, app.view.height, 0.2);
   const earth: Planet = {
     ...newPhysicalBody({
-      initialPosition: new PIXI.Point(app.view.width / 2, app.view.height / 2),
+      initialPosition: new PIXI.Point(...earthInitialPosition),
       scale: new PIXI.Point(1.5, 1.5),
       texture: textures["earth"],
     }),
@@ -64,14 +62,18 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
 
   planets.push({
     ...newPhysicalBody({
-      initialPosition: new PIXI.Point(app.view.width * 0.8, app.view.height / 2),
+      initialPosition: new PIXI.Point(
+        ...randomScreenPositionInBounds(app.view.width, app.view.height, 0.1)
+      ),
       scale: new PIXI.Point(0.6, 0.65),
       texture: textures["moon"],
     }),
     rotationSpeed: randomRotation(10),
   }, {
     ...newPhysicalBody({
-      initialPosition: new PIXI.Point(app.view.width * 0.2, app.view.height / 2),
+      initialPosition: new PIXI.Point(
+        ...randomScreenPositionInBounds(app.view.width, app.view.height, 0.1)
+      ),
       scale: new PIXI.Point(0.6, 0.65),
       texture: textures["moon"],
     }),
@@ -82,8 +84,8 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
     ...newPhysicalBody({
       anchor: new PIXI.Point(0.5, 0.75),
       initialPosition: new PIXI.Point(
-        app.view.width * 0.5,
-        app.view.height * 0.5 - earth.radius,
+        earthInitialPosition[0],
+        earthInitialPosition[1] - earth.radius,
       ),
       rotation: Math.PI * 1.5,
       scale: new PIXI.Point(0.3, 0.3),

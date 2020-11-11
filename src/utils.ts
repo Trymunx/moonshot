@@ -78,6 +78,9 @@ export const newPhysicalBody = ({
   };
 };
 
+export const random = (a: number, b?: number): number =>
+  b === undefined ? Math.random() * a : Math.random() * (b - a) + a;
+
 export const randomInt = (a: number, b?: number): number => {
   if (b === undefined) {
     return Math.floor(Math.random() * a);
@@ -86,6 +89,14 @@ export const randomInt = (a: number, b?: number): number => {
   const max = Math.floor(b);
   return Math.floor(Math.random() * (max - min) + min);
 };
+
+export const randomRotation = (x: number): number =>
+  (Math.sign(Math.random() - 0.5) || 0) * randomInt(1, x) / 100;
+
+export const randomScreenPositionInBounds = (w: number, h: number, x: number): [number, number] => [
+  random(w * x, w * (1 - x)),
+  random(h * x, h * (1 - x)),
+];
 
 export const reset = (rocket: Rocket): void => {
   rocket.sprite.x = rocket.initialPosition.x;
