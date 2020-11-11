@@ -5,6 +5,15 @@ export interface PhysicalBody {
   velocity?: PIXI.Point;
 }
 
+export interface Planet extends PhysicalBody {
+  rotationSpeed: number;
+}
+
+export interface Rocket extends PhysicalBody {
+  landingAngle: number;
+  thrusterFuel: number;
+}
+
 export type Rect = {
   height: number;
   width: number;

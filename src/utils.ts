@@ -1,17 +1,29 @@
 import * as PIXI from "pixi.js";
-import { PhysicalBody, Point, Rect, Vector } from "./types";
+import { PhysicalBody, Planet, Point, Rect, Rocket, Vector } from "./types";
 
 /**
  * angleFromVector takes a velocity vector and returns the angle of the vector.
  */
 export const angleFromVector = ({ x, y }: Vector): number => Math.atan2(y, x);
 
-export const angleToPoint = (p1: Point, p2: Point): number => Math.atan2(p1.y - p2.y, p1.x - p2.x);
+export const angleToVector = (
+  angle: number, multiplierX = 1, multiplierY = multiplierX
+): Vector => ({
+  x: Math.cos(angle) * multiplierX,
+  y: Math.sin(angle) * multiplierY,
+});
+
+export const angle = (p1: Point, p2: Point): number => Math.atan2(p1.y - p2.y, p1.x - p2.x);
 
 export const averageAngle = (a: number, b: number): number => Math.atan2(
   (Math.sin(a) + Math.sin(b)) / 2,
   (Math.cos(a) + Math.cos(b)) / 2,
 );
+
+export const calculateGravityVector = (planet: Planet, body: PhysicalBody): Point => {
+  const distance = Math.max(0.01, dist(planet.sprite, body.sprite));
+  return angleToVector(angle(planet.sprite, body.sprite), planet.radius / (2 * distance));
+};
 
 export const calculateSpeed = ({ x, y }: Point): number => Math.abs(Math.hypot(x, y));
 
@@ -66,15 +78,24 @@ export const newPhysicalBody = ({
   };
 };
 
-export const reset = (body: PhysicalBody): void => {
-  body.sprite.x = body.initialPosition.x;
-  body.sprite.y = body.initialPosition.y;
-  updateVelocity(body, 0, 0);
-  body.sprite.rotation = Math.PI * 1.5;
-  body.sprite.visible = true;
+export const randomInt = (a: number, b?: number): number => {
+  if (b === undefined) {
+    return Math.floor(Math.random() * a);
+  }
+  const min = Math.ceil(a);
+  const max = Math.floor(b);
+  return Math.floor(Math.random() * (max - min) + min);
+};
+
+export const reset = (rocket: Rocket): void => {
+  rocket.sprite.x = rocket.initialPosition.x;
+  rocket.sprite.y = rocket.initialPosition.y;
+  updateVelocity(rocket, 0, 0);
+  rocket.sprite.rotation = Math.PI * 1.5;
+  rocket.sprite.visible = true;
+  rocket.thrusterFuel = 0;
 };
 
 export const updateVelocity = (body: PhysicalBody, x: number, y = x): void => {
   body.velocity.set(x, y);
 };
-

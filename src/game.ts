@@ -1,13 +1,16 @@
 import * as PIXI from "pixi.js";
 import {
+  angle,
   angleFromVector,
-  angleToPoint,
+  angleToVector,
+  calculateGravityVector,
   calculateSpeed,
   dist,
   distToSurface,
   // isInBounds,
   newPhysicalBody,
   outOfBounds,
+  randomInt,
   reset,
   updateVelocity,
 } from "./utils";
@@ -15,16 +18,22 @@ import {
   CrashInstance,
   CrashProps,
   DraggingData,
-  PhysicalBody,
+  Planet,
+  Point,
+  Rocket,
 } from "./types";
 
-const AIR_RESISTANCE = 0.04;
-const RESISTANCE = 0.7;
-const GRAVITY = 0.05;
-const AIR_RESISTANCE_RADIUS = 2.5;
-const LANDING_RADIUS = 1;
+const AIR_RESISTANCE = 0.02;
+// const RESISTANCE = 0.01;
+// const GRAVITY = 0.05;
+const AIR_RESISTANCE_RADIUS = 2;
+const LANDING_DISTANCE = 60;
 const LANDING_VELOCITY = 1;
+const MAX_LANDING_VELOCITY = 5;
 const DRAG_MODIFIER = 0.02;
+const THRUST_POWER = 0.01;
+
+const randomRotation = (x: number) => (Math.sign(Math.random() - 0.5) || 0) * randomInt(1, x) / 100;
 
 export const runGame = (textures: Record<string, PIXI.Texture | undefined>): void => {
   const app = new PIXI.Application({
@@ -41,33 +50,56 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
    * Sprites ----------------------------------
    */
 
-  const earth: PhysicalBody = newPhysicalBody({
-    initialPosition: new PIXI.Point(app.view.width * 0.1, app.view.height * 0.8),
-    scale: new PIXI.Point(1.5, 1.5),
-    texture: textures["earth"],
+  const planets: Planet[] = [];
+
+  const earth: Planet = {
+    ...newPhysicalBody({
+      initialPosition: new PIXI.Point(app.view.width / 2, app.view.height / 2),
+      scale: new PIXI.Point(1.5, 1.5),
+      texture: textures["earth"],
+    }),
+    rotationSpeed: randomRotation(5),
+  };
+  planets.push(earth);
+
+  planets.push({
+    ...newPhysicalBody({
+      initialPosition: new PIXI.Point(app.view.width * 0.8, app.view.height / 2),
+      scale: new PIXI.Point(0.6, 0.65),
+      texture: textures["moon"],
+    }),
+    rotationSpeed: randomRotation(10),
+  }, {
+    ...newPhysicalBody({
+      initialPosition: new PIXI.Point(app.view.width * 0.2, app.view.height / 2),
+      scale: new PIXI.Point(0.6, 0.65),
+      texture: textures["moon"],
+    }),
+    rotationSpeed: randomRotation(10),
   });
 
-  const moon: PhysicalBody = newPhysicalBody({
-    initialPosition: new PIXI.Point(app.view.width * 0.75, app.view.height / 3),
-    scale: new PIXI.Point(0.6, 0.65),
-    texture: textures["moon"],
-  });
-
-  const rocket: PhysicalBody = newPhysicalBody({
-    anchor: new PIXI.Point(0.5, 0.75),
-    initialPosition: new PIXI.Point(
-      app.view.width * 0.1,
-      app.view.height * 0.8 - earth.radius,
-    ),
-    rotation: Math.PI * 1.5,
-    scale: new PIXI.Point(0.3, 0.3),
-    texture: textures["rocket"],
-    velocity: new PIXI.Point(0),
-  });
+  const rocket: Rocket = {
+    ...newPhysicalBody({
+      anchor: new PIXI.Point(0.5, 0.75),
+      initialPosition: new PIXI.Point(
+        app.view.width * 0.5,
+        app.view.height * 0.5 - earth.radius,
+      ),
+      rotation: Math.PI * 1.5,
+      scale: new PIXI.Point(0.3, 0.3),
+      texture: textures["rocket"],
+      velocity: new PIXI.Point(0),
+    }),
+    landingAngle: 0,
+    thrusterFuel: 0,
+  };
   reset(rocket);
 
   // Add to stage
-  app.stage.addChild(earth.sprite, moon.sprite, rocket.sprite);
+  for (const planet of planets) {
+    app.stage.addChild(planet.sprite);
+  }
+  app.stage.addChild(rocket.sprite);
 
   const crashes: CrashInstance[] = [];
 
@@ -94,77 +126,84 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
   });
   app.stage.on("pointerup", (e: PIXI.InteractionEvent) => {
     const distance = dist(draggingData.start, e.data.global) * DRAG_MODIFIER;
-    const angle = angleToPoint(draggingData.start, e.data.global);
-    updateVelocity(
-      rocket,
-      Math.cos(angle) * distance,
-      Math.sin(angle) * distance,
-    );
+    const { x, y } = angleToVector(angle(draggingData.start, e.data.global), distance);
+    updateVelocity(rocket, x, y);
     rocket.sprite.rotation = angleFromVector(rocket.velocity);
+    rocket.thrusterFuel = 20;
   });
 
   app.ticker.add(delta => {
-    const rotation = 0.01;
-    earth.sprite.rotation += rotation;
-    // moon.sprite.rotation -= 0.01;
-    const distance = distToSurface(moon, rocket);
+    let closestPlanet: Planet & {distance: number;};
+    const gravityVector: Point = { x: 0, y: 0 };
+
+    for (const planet of planets) {
+      planet.sprite.rotation += planet.rotationSpeed;
+      const distance = dist(planet.sprite, rocket.sprite);
+      if (!closestPlanet || closestPlanet.distance > distance) {
+        closestPlanet = { ...planet, distance };
+      }
+
+      const { x, y } = calculateGravityVector(planet, rocket);
+      gravityVector.x += x;
+      gravityVector.y += y;
+    }
+
+    const distance = distToSurface(closestPlanet, rocket);
     const speed = calculateSpeed(rocket.velocity);
 
-    if (distToSurface(earth, rocket) < 100) {
-      rocket.sprite.rotation = Math.PI + angleToPoint(earth.sprite, rocket.sprite);
-      rocket.sprite.x = earth.sprite.x + earth.radius * Math.cos(earth.sprite.rotation);
-      rocket.sprite.y = earth.sprite.y + earth.radius * Math.sin(earth.sprite.rotation);
-    } else if (distance <= 0 && speed > 8) {
+    if (rocket.thrusterFuel > 0
+      && dist(closestPlanet.sprite, rocket.sprite) > closestPlanet.radius * 0.9) {
+      rocket.thrusterFuel--;
+      updateVelocity(
+        rocket,
+        rocket.velocity.x * (1 + THRUST_POWER),
+        rocket.velocity.y * (1 + THRUST_POWER),
+      );
+    } else if (distance <= 5 && speed > MAX_LANDING_VELOCITY) {
       const { x, y } = rocket.sprite;
       addCrash({ duration: 100, x, y });
       rocket.sprite.visible = false;
       updateVelocity(rocket, 0);
     } else if (distance <= 0) {
       updateVelocity(rocket, 0);
-      rocket.sprite.rotation = angleToPoint(rocket.sprite, moon.sprite);
-    } else if (distance < moon.radius * LANDING_RADIUS) {
-      const landingSpeed = Math.abs(Math.hypot(
-        LANDING_VELOCITY * -Math.cos(angleToPoint(rocket.sprite, moon.sprite)),
-        LANDING_VELOCITY * -Math.sin(angleToPoint(rocket.sprite, moon.sprite)),
-      ));
+      // rocket.sprite.rotation = angle(rocket.sprite, moon.sprite);
+      rocket.sprite.rotation = Math.PI + angle(closestPlanet.sprite, rocket.sprite);
+      const { x, y } =
+        angleToVector(closestPlanet.sprite.rotation - rocket.landingAngle, closestPlanet.radius);
+      rocket.sprite.x = closestPlanet.sprite.x + x;
+      rocket.sprite.y = closestPlanet.sprite.y + y;
+    } else if (distance < LANDING_DISTANCE) {
+      const landingVector =
+        angleToVector(angle(closestPlanet.sprite, rocket.sprite), LANDING_VELOCITY);
+      // const landingSpeed = Math.abs(Math.hypot(landingVector.x, landingVector.y));
 
-      if (speed > landingSpeed) {
+      if (speed > MAX_LANDING_VELOCITY) {
         updateVelocity(
           rocket,
           rocket.velocity.x * (1 - AIR_RESISTANCE),
           rocket.velocity.y * (1 - AIR_RESISTANCE),
         );
       } else {
-        updateVelocity(
-          rocket,
-          LANDING_VELOCITY * -Math.cos(angleToPoint(rocket.sprite, moon.sprite)),
-          LANDING_VELOCITY * -Math.sin(angleToPoint(rocket.sprite, moon.sprite))
-        );
-        rocket.sprite.rotation = angleToPoint(rocket.sprite, moon.sprite);
+        updateVelocity(rocket, landingVector.x, landingVector.y);
+        rocket.sprite.rotation = angle(rocket.sprite, closestPlanet.sprite);
+        rocket.landingAngle =
+          Math.PI + closestPlanet.sprite.rotation - angle(closestPlanet.sprite, rocket.sprite);
       }
 
-    } else if (distance < moon.sprite.width * AIR_RESISTANCE_RADIUS) {
+    } else if (distance < closestPlanet.sprite.width * AIR_RESISTANCE_RADIUS) {
       updateVelocity(
         rocket,
-        rocket.velocity.x * (1 - AIR_RESISTANCE)
-        + (1 - RESISTANCE) * -Math.cos(angleToPoint(rocket.sprite, moon.sprite)),
-        rocket.velocity.y * (1 - AIR_RESISTANCE)
-        + (1 - RESISTANCE) * -Math.sin(angleToPoint(rocket.sprite, moon.sprite)),
+        rocket.velocity.x * (1 - AIR_RESISTANCE) + gravityVector.x,
+        rocket.velocity.y * (1 - AIR_RESISTANCE) + gravityVector.y,
       );
-
       rocket.sprite.rotation = angleFromVector(rocket.velocity);
     } else {
-      rocket.velocity.set(
-        rocket.velocity.x + (1 - RESISTANCE) * -Math.cos(angleToPoint(rocket.sprite, moon.sprite)),
-        rocket.velocity.y + (1 - RESISTANCE) * -Math.sin(angleToPoint(rocket.sprite, moon.sprite)),
+      updateVelocity(
+        rocket,
+        rocket.velocity.x + gravityVector.x,
+        rocket.velocity.y + gravityVector.y,
       );
-
       rocket.sprite.rotation = angleFromVector(rocket.velocity);
-
-      rocket.sprite.x +=
-        rocket.velocity.x * delta / (distToSurface(moon, rocket) * GRAVITY);
-      rocket.sprite.y +=
-        rocket.velocity.y * delta / (distToSurface(moon, rocket) * GRAVITY);
     }
 
     rocket.sprite.x += rocket.velocity.x * delta;
