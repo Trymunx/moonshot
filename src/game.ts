@@ -32,9 +32,10 @@ const AIR_RESISTANCE = 0.02;
 const AIR_RESISTANCE_RADIUS = 2;
 const LANDING_DISTANCE = 60;
 const LANDING_VELOCITY = 1;
-const MAX_LANDING_VELOCITY = 5;
+const MAX_LANDING_VELOCITY = 2;
 const DRAG_MODIFIER = 0.02;
 const THRUST_POWER = 0.01;
+const GOOD_LANDING_ANGLE = 0.45 / MAX_LANDING_VELOCITY;
 
 export const runGame = (textures: Record<string, PIXI.Texture | undefined>): void => {
   const app = new PIXI.Application({
@@ -91,8 +92,8 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
         scale: new PIXI.Point(scale, scale),
         texture: texture,
       }),
-      orbitAngle: angle(earth.sprite, { x, y }),
-      orbitDistance: dist(earth.sprite, { x, y }),
+      orbitAngle: angle(earth.sprite, {x, y}),
+      orbitDistance: dist(earth.sprite, {x, y}),
       rotationSpeed: randomRotation(8),
       speed: Math.random() - 0.5,
     });
@@ -119,6 +120,18 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
   arrow.visible = false;
   arrow.anchor.set(0.5);
 
+  const speedometer = new PIXI.Sprite(textures["speedometer"]);
+  speedometer.anchor.set(0, 1);
+  speedometer.scale.set(0.6);
+  speedometer.x = 20;
+  speedometer.y = app.view.height - 20;
+  const speedNeedle = new PIXI.Sprite(textures["speedometer_arrow"]);
+  speedNeedle.anchor.set(0, 0.5);
+  speedNeedle.scale.set(0.65, 1);
+  speedNeedle.rotation = -Math.PI;
+  speedNeedle.x = speedometer.x + speedometer.width / 2;
+  speedNeedle.y = speedometer.y - speedometer.height * 0.42;
+
   // Add to stage
   for (const planet of planets) {
     app.stage.addChild(planet.sprite);
@@ -126,11 +139,11 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
   for (const asteroid of asteroids) {
     app.stage.addChild(asteroid.sprite);
   }
-  app.stage.addChild(rocket.sprite, arrow);
+  app.stage.addChild(rocket.sprite, speedometer, speedNeedle, arrow);
 
   const crashes: CrashInstance[] = [];
 
-  const addCrash = ({ x, y, duration }: CrashProps) => {
+  const addCrash = ({x, y, duration}: CrashProps) => {
     const crash = new PIXI.Sprite(textures["crash"]);
     crash.x = x;
     crash.y = y;
@@ -144,12 +157,12 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
   };
 
   // Handle dragging for launching rocket
-  const draggingData: DraggingData = { dragging: false };
+  const draggingData: DraggingData = {dragging: false};
   app.stage.interactive = true;
   app.stage.hitArea = new PIXI.Rectangle(0, 0, app.view.width, app.view.height);
   app.stage.on("pointerdown", (e: PIXI.InteractionEvent) => {
-    const { x, y } = e.data.global;
-    draggingData.start = { x, y };
+    const {x, y} = e.data.global;
+    draggingData.start = {x, y};
     draggingData.dragging = true;
 
     arrow.x = x;
@@ -163,7 +176,7 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
     }
     const distance = dist(draggingData.start, e.data.global);
     const a = angle(draggingData.start, e.data.global);
-    const { x, y } = e.data.global;
+    const {x, y} = e.data.global;
     arrow.x = (x + draggingData.start.x) / 2;
     arrow.y = (y + draggingData.start.y) / 2;
     arrow.scale.set(distance / ARROW_SCALE_MODIFIER);
@@ -171,7 +184,7 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
   });
   app.stage.on("pointerup", (e: PIXI.InteractionEvent) => {
     const distance = dist(draggingData.start, e.data.global) * DRAG_MODIFIER;
-    const { x, y } = angleToVector(angle(draggingData.start, e.data.global), distance);
+    const {x, y} = angleToVector(angle(draggingData.start, e.data.global), distance);
     updateVelocity(rocket, x, y);
     rocket.sprite.rotation = angleFromVector(rocket.velocity);
     rocket.thrusterFuel = 20;
@@ -181,16 +194,16 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
 
   app.ticker.add(delta => {
     let closestPlanet: Planet & {distance: number;};
-    const gravityVector: Point = { x: 0, y: 0 };
+    const gravityVector: Point = {x: 0, y: 0};
 
     for (const planet of planets) {
       planet.sprite.rotation += planet.rotationSpeed * delta;
       const distance = dist(planet.sprite, rocket.sprite);
       if (!closestPlanet || closestPlanet.distance > distance) {
-        closestPlanet = { ...planet, distance };
+        closestPlanet = {...planet, distance};
       }
 
-      const { x, y } = calculateGravityVector(planet, rocket);
+      const {x, y} = calculateGravityVector(planet, rocket);
       gravityVector.x += x;
       gravityVector.y += y;
     }
@@ -198,15 +211,18 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
     const distance = distToSurface(closestPlanet, rocket);
     const speed = calculateSpeed(rocket.velocity);
 
+    // Update speedometer needle
+    speedNeedle.rotation = Math.min(-Math.PI + speed * GOOD_LANDING_ANGLE, 0);
+
     for (const asteroid of asteroids) {
       asteroid.sprite.rotation += asteroid.rotationSpeed * delta;
       if (distToSurface(asteroid, rocket) <= 0 && speed > 0) {
-        const { x, y } = rocket.sprite;
-        addCrash({ duration: 100, x, y });
+        const {x, y} = rocket.sprite;
+        addCrash({duration: 100, x, y});
         rocket.sprite.visible = false;
         updateVelocity(rocket, 0);
       }
-      const { x, y } = angleToVector(
+      const {x, y} = angleToVector(
         earth.sprite.rotation * asteroid.speed - asteroid.orbitAngle, asteroid.orbitDistance
       );
       asteroid.sprite.x = earth.sprite.x + x;
@@ -225,14 +241,14 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
         rocket.velocity.y * (1 + THRUST_POWER),
       );
     } else if (distance <= 5 && speed > MAX_LANDING_VELOCITY) {
-      const { x, y } = rocket.sprite;
-      addCrash({ duration: 100, x, y });
+      const {x, y} = rocket.sprite;
+      addCrash({duration: 100, x, y});
       rocket.sprite.visible = false;
       updateVelocity(rocket, 0);
     } else if (distance <= 0) {
       updateVelocity(rocket, 0);
       rocket.sprite.rotation = Math.PI + angle(closestPlanet.sprite, rocket.sprite);
-      const { x, y } =
+      const {x, y} =
         angleToVector(closestPlanet.sprite.rotation - rocket.landingAngle, closestPlanet.radius);
       rocket.sprite.x = closestPlanet.sprite.x + x;
       rocket.sprite.y = closestPlanet.sprite.y + y;
