@@ -33,6 +33,7 @@ export type Point = {
 export type Vector = Point;
 
 export type DraggingData = {
+  dragging: boolean;
   start?: {x: number, y: number};
 };
 

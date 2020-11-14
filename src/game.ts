@@ -27,6 +27,7 @@ import {
   Rocket,
 } from "./types";
 
+const ARROW_SCALE_MODIFIER = 1000; // Larger number means smaller arrow
 const AIR_RESISTANCE = 0.02;
 const AIR_RESISTANCE_RADIUS = 2;
 const LANDING_DISTANCE = 60;
@@ -114,6 +115,10 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
   };
   reset(rocket);
 
+  const arrow = new PIXI.Sprite(textures["arrow"]);
+  arrow.visible = false;
+  arrow.anchor.set(0.5);
+
   // Add to stage
   for (const planet of planets) {
     app.stage.addChild(planet.sprite);
@@ -121,7 +126,7 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
   for (const asteroid of asteroids) {
     app.stage.addChild(asteroid.sprite);
   }
-  app.stage.addChild(rocket.sprite);
+  app.stage.addChild(rocket.sprite, arrow);
 
   const crashes: CrashInstance[] = [];
 
@@ -139,12 +144,30 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
   };
 
   // Handle dragging for launching rocket
-  const draggingData: DraggingData = {};
+  const draggingData: DraggingData = { dragging: false };
   app.stage.interactive = true;
   app.stage.hitArea = new PIXI.Rectangle(0, 0, app.view.width, app.view.height);
   app.stage.on("pointerdown", (e: PIXI.InteractionEvent) => {
     const { x, y } = e.data.global;
     draggingData.start = { x, y };
+    draggingData.dragging = true;
+
+    arrow.x = x;
+    arrow.y = y;
+    arrow.scale.set(0);
+    arrow.visible = true;
+  });
+  app.stage.on("pointermove", (e: PIXI.InteractionEvent) => {
+    if (!draggingData.dragging) {
+      return;
+    }
+    const distance = dist(draggingData.start, e.data.global);
+    const a = angle(draggingData.start, e.data.global);
+    const { x, y } = e.data.global;
+    arrow.x = (x + draggingData.start.x) / 2;
+    arrow.y = (y + draggingData.start.y) / 2;
+    arrow.scale.set(distance / ARROW_SCALE_MODIFIER);
+    arrow.rotation = a;
   });
   app.stage.on("pointerup", (e: PIXI.InteractionEvent) => {
     const distance = dist(draggingData.start, e.data.global) * DRAG_MODIFIER;
@@ -152,6 +175,8 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
     updateVelocity(rocket, x, y);
     rocket.sprite.rotation = angleFromVector(rocket.velocity);
     rocket.thrusterFuel = 20;
+    arrow.visible = false;
+    draggingData.dragging = false;
   });
 
   app.ticker.add(delta => {
