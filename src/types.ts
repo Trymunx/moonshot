@@ -9,6 +9,12 @@ export interface Planet extends PhysicalBody {
   rotationSpeed: number;
 }
 
+export interface Asteroid extends Planet {
+  orbitAngle: number;
+  orbitDistance: number;
+  speed: number;
+}
+
 export interface Rocket extends PhysicalBody {
   landingAngle: number;
   thrusterFuel: number;

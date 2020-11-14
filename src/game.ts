@@ -18,6 +18,7 @@ import {
   updateVelocity,
 } from "./utils";
 import {
+  Asteroid,
   CrashInstance,
   CrashProps,
   DraggingData,
@@ -77,20 +78,22 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
 
   }
 
-  const asteroids: Planet[] = [];
+  const asteroids: Asteroid[] = [];
   const numberOfAsteroids = randomInt(5, 15);
   for (let i = 0; i < numberOfAsteroids; i++) {
     const texture = textures[randomInArray(["asteroid01", "asteroid02"])];
     const scale = Math.random() / 2 + 0.5;
+    const [x, y] = randomScreenPositionInBounds(app.view.width, app.view.height, 0.1);
     asteroids.push({
       ...newPhysicalBody({
-        initialPosition: new PIXI.Point(
-          ...randomScreenPositionInBounds(app.view.width, app.view.height, 0.1)
-        ),
+        initialPosition: new PIXI.Point(x, y),
         scale: new PIXI.Point(scale, scale),
         texture: texture,
       }),
+      orbitAngle: angle(earth.sprite, { x, y }),
+      orbitDistance: dist(earth.sprite, { x, y }),
       rotationSpeed: randomRotation(8),
+      speed: Math.random() - 0.5,
     });
   }
 
@@ -178,6 +181,11 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
         rocket.sprite.visible = false;
         updateVelocity(rocket, 0);
       }
+      const { x, y } = angleToVector(
+        earth.sprite.rotation * asteroid.speed - asteroid.orbitAngle, asteroid.orbitDistance
+      );
+      asteroid.sprite.x = earth.sprite.x + x;
+      asteroid.sprite.y = earth.sprite.y + y;
     }
 
 
