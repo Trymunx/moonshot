@@ -6,7 +6,9 @@ const loader = new PIXI.Loader();
 loader.add("moon", "moon.png")
   .add("rocket", "rocket.png")
   .add("crash", "crash.png")
-  .add("earth", "earth.png");
+  .add("earth", "earth.png")
+  .add("asteroid01", "asteroid01.png")
+  .add("asteroid02", "asteroid02.png");
 
 loader.load((_, resources) => {
   for (const res in resources) {

@@ -90,6 +90,8 @@ export const randomInt = (a: number, b?: number): number => {
   return Math.floor(Math.random() * (max - min) + min);
 };
 
+export const randomInArray = <T>(a: T[]): T => a[randomInt(a.length)];
+
 export const randomRotation = (x: number): number =>
   (Math.sign(Math.random() - 0.5) || 0) * randomInt(1, x) / 100;
 

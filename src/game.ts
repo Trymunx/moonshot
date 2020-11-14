@@ -10,6 +10,7 @@ import {
   // isInBounds,
   newPhysicalBody,
   outOfBounds,
+  randomInArray,
   randomInt,
   randomRotation,
   randomScreenPositionInBounds,
@@ -54,7 +55,7 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
   const earth: Planet = {
     ...newPhysicalBody({
       initialPosition: new PIXI.Point(...earthInitialPosition),
-      scale: new PIXI.Point(1.5, 1.5),
+      scale: new PIXI.Point(1, 1),
       texture: textures["earth"],
     }),
     rotationSpeed: randomRotation(5),
@@ -71,9 +72,26 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
         scale: new PIXI.Point(0.6, 0.65),
         texture: textures["moon"],
       }),
-      rotationSpeed: randomRotation(10),
+      rotationSpeed: randomRotation(6),
     });
 
+  }
+
+  const asteroids: Planet[] = [];
+  const numberOfAsteroids = randomInt(5, 15);
+  for (let i = 0; i < numberOfAsteroids; i++) {
+    const texture = textures[randomInArray(["asteroid01", "asteroid02"])];
+    const scale = Math.random() / 2 + 0.5;
+    asteroids.push({
+      ...newPhysicalBody({
+        initialPosition: new PIXI.Point(
+          ...randomScreenPositionInBounds(app.view.width, app.view.height, 0.1)
+        ),
+        scale: new PIXI.Point(scale, scale),
+        texture: texture,
+      }),
+      rotationSpeed: randomRotation(8),
+    });
   }
 
   const rocket: Rocket = {
@@ -96,6 +114,9 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
   // Add to stage
   for (const planet of planets) {
     app.stage.addChild(planet.sprite);
+  }
+  for (const asteroid of asteroids) {
+    app.stage.addChild(asteroid.sprite);
   }
   app.stage.addChild(rocket.sprite);
 
@@ -135,7 +156,7 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
     const gravityVector: Point = { x: 0, y: 0 };
 
     for (const planet of planets) {
-      planet.sprite.rotation += planet.rotationSpeed;
+      planet.sprite.rotation += planet.rotationSpeed * delta;
       const distance = dist(planet.sprite, rocket.sprite);
       if (!closestPlanet || closestPlanet.distance > distance) {
         closestPlanet = { ...planet, distance };
@@ -149,7 +170,20 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
     const distance = distToSurface(closestPlanet, rocket);
     const speed = calculateSpeed(rocket.velocity);
 
-    if (rocket.thrusterFuel > 0
+    for (const asteroid of asteroids) {
+      asteroid.sprite.rotation += asteroid.rotationSpeed * delta;
+      if (distToSurface(asteroid, rocket) <= 0 && speed > 0) {
+        const { x, y } = rocket.sprite;
+        addCrash({ duration: 100, x, y });
+        rocket.sprite.visible = false;
+        updateVelocity(rocket, 0);
+      }
+    }
+
+
+    if (!rocket.sprite.visible) {
+      // don't update rocket if it has crashed
+    } else if (rocket.thrusterFuel > 0
       && dist(closestPlanet.sprite, rocket.sprite) > closestPlanet.radius * 0.9) {
       rocket.thrusterFuel--;
       updateVelocity(
@@ -164,7 +198,6 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
       updateVelocity(rocket, 0);
     } else if (distance <= 0) {
       updateVelocity(rocket, 0);
-      // rocket.sprite.rotation = angle(rocket.sprite, moon.sprite);
       rocket.sprite.rotation = Math.PI + angle(closestPlanet.sprite, rocket.sprite);
       const { x, y } =
         angleToVector(closestPlanet.sprite.rotation - rocket.landingAngle, closestPlanet.radius);
@@ -173,7 +206,6 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
     } else if (distance < LANDING_DISTANCE) {
       const landingVector =
         angleToVector(angle(closestPlanet.sprite, rocket.sprite), LANDING_VELOCITY);
-      // const landingSpeed = Math.abs(Math.hypot(landingVector.x, landingVector.y));
 
       if (speed > MAX_LANDING_VELOCITY) {
         updateVelocity(
