@@ -1,10 +1,10 @@
 import * as PIXI from "pixi.js";
-import {PhysicalBody, Planet, Point, Rect, Rocket, Vector} from "./types";
+import { PhysicalBody, Planet, Point, Rect, Rocket, Vector } from "./types";
 
 /**
  * angleFromVector takes a velocity vector and returns the angle of the vector.
  */
-export const angleFromVector = ({x, y}: Vector): number => Math.atan2(y, x);
+export const angleFromVector = ({ x, y }: Vector): number => Math.atan2(y, x);
 
 export const angleToVector = (
   angle: number, multiplierX = 1, multiplierY = multiplierX
@@ -25,21 +25,28 @@ export const calculateGravityVector = (planet: Planet, body: PhysicalBody): Poin
   return angleToVector(angle(planet.sprite, body.sprite), planet.radius / (2 * distance));
 };
 
-export const calculateSpeed = ({x, y}: Point): number => Math.abs(Math.hypot(x, y));
+export const calculateSpeed = ({ x, y }: Point): number => Math.abs(Math.hypot(x, y));
 
 export const dist = (p1: Point, p2: Point): number => Math.hypot(p1.x - p2.x, p1.y - p2.y);
 
 export const distToSurface = (b1: PhysicalBody, b2: PhysicalBody): number =>
   dist(b1.sprite, b2.sprite) - (b1.radius + b2.radius);
 
-export const isInBounds = (body: PhysicalBody, {height, width}: Rect): boolean => {
+export const isInBounds = (body: PhysicalBody, { height, width }: Rect): boolean => {
   const sb = body.sprite.getBounds();
   return sb.x > 0 && sb.x + sb.width < width && sb.y > 0 && sb.y + sb.height < height;
 };
-export const outOfBounds = (body: PhysicalBody, {height, width}: Rect): boolean => {
+export const outOfBounds = (body: PhysicalBody, { height, width }: Rect): boolean => {
   const limit = 3;
   const sb = body.sprite.getBounds();
   return sb.x < 0 - width || sb.x > width * limit || sb.y < 0 - height || sb.y > height * limit;
+};
+
+// Calculate gradient (m) and offset (c) of a line (y = mx + c)
+export const line = (p: Point, a: number): {c: number, m: number} => {
+  const m = Math.tan(a);
+  const c = p.y - m * p.x;
+  return { c, m };
 };
 
 interface PhysicalBodyOptions {
@@ -56,7 +63,7 @@ interface PhysicalBodyOptions {
 const idGenerator = () => {
   let entityCount = 0;
   return () => entityCount++;
-}
+};
 const getNewID = idGenerator();
 
 export const newPhysicalBody = ({
@@ -90,7 +97,7 @@ export const random = (a = 1, b?: number): number =>
   b === undefined ? Math.random() * a : Math.random() * (b - a) + a;
 
 // Returns -1 or 1 more or less randomly, with a slight preference for 1 due to handling of 0
-export const randomSign = () => Math.sign(Math.random() - 0.5) || 1;
+export const randomSign = (): number => Math.sign(Math.random() - 0.5) || 1;
 
 export const randomInt = (a: number, b?: number): number => {
   if (b === undefined) {
@@ -105,9 +112,9 @@ export const randomInArray = <T>(a: T[]): T => a[randomInt(a.length)];
 
 export const randomRotation = (x: number): number => randomSign() * randomInt(1, x) / 100;
 
-export const randomScreenPositionInBounds = (w: number, h: number, x: number): [number, number] => [
-  random(w * x, w * (1 - x)),
-  random(h * x, h * (1 - x)),
+export const randomScreenPositionInBounds = (r: Rect, x: number): [number, number] => [
+  random(r.width * x, r.width * (1 - x)),
+  random(r.height * x, r.height * (1 - x)),
 ];
 
 export const reset = (rocket: Rocket): void => {
