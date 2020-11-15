@@ -58,7 +58,8 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
 
   const planets: Planet[] = [];
 
-  const earthInitialPosition = randomScreenPositionInBounds(app.view.width, app.view.height, 0.2);
+  // const earthInitialPosition = randomScreenPositionInBounds(app.view.width, app.view.height, 0.2);
+  const earthInitialPosition = [app.view.width * 0.25, app.view.height * 0.5];
   const earth: Planet = {
     ...newPhysicalBody({
       initialPosition: new PIXI.Point(...earthInitialPosition),
@@ -69,13 +70,14 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
   };
   planets.push(earth);
 
-  const numberOfMoons = randomInt(1, 4);
+  // const numberOfMoons = randomInt(1, 4);
+  const numberOfMoons = 1;
   for (let i = 0; i < numberOfMoons; i++) {
+    // const moonPosition = randomScreenPositionInBounds(app.view.width, app.view.height, 0.1);
+    const moonPosition = [app.view.width * 0.75, app.view.height * 0.4];
     planets.push({
       ...newPhysicalBody({
-        initialPosition: new PIXI.Point(
-          ...randomScreenPositionInBounds(app.view.width, app.view.height, 0.1)
-        ),
+        initialPosition: new PIXI.Point(...moonPosition),
         scale: new PIXI.Point(0.6, 0.65),
         texture: textures["moon"],
       }),
@@ -132,10 +134,10 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
   speedometer.y = app.view.height - 20;
   const speedNeedle = new PIXI.Sprite(textures["speedometer_arrow"]);
   speedNeedle.anchor.set(0, 0.5);
-  speedNeedle.scale.set(0.65, 1);
+  speedNeedle.scale.set(0.6, 1);
   speedNeedle.rotation = -Math.PI;
   speedNeedle.x = speedometer.x + speedometer.width / 2;
-  speedNeedle.y = speedometer.y - speedometer.height * 0.42;
+  speedNeedle.y = speedometer.y - speedometer.height * 0.19;
 
   // Add to stage
   for (const planet of planets) {
