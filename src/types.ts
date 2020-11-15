@@ -1,4 +1,5 @@
 export interface PhysicalBody {
+  id: number;
   initialPosition?: PIXI.Point;
   radius: number;
   sprite: PIXI.Sprite;
@@ -10,6 +11,7 @@ export interface Planet extends PhysicalBody {
 }
 
 export interface Asteroid extends Planet {
+  crashingDuration: number;
   orbitAngle: number;
   orbitDistance: number;
   speed: number;

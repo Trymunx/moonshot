@@ -10,10 +10,12 @@ import {
   // isInBounds,
   newPhysicalBody,
   outOfBounds,
+  random,
   randomInArray,
   randomInt,
   randomRotation,
   randomScreenPositionInBounds,
+  randomSign,
   reset,
   updateVelocity,
 } from "./utils";
@@ -37,7 +39,7 @@ const DRAG_MODIFIER = 0.02;
 const THRUST_POWER = 0.01;
 const GOOD_LANDING_ANGLE = 0.45 / MAX_LANDING_VELOCITY;
 
-let SLOWDOWN = 3;
+const SLOWDOWN = 3;
 
 export const runGame = (textures: Record<string, PIXI.Texture | undefined>): void => {
   const app = new PIXI.Application({
@@ -86,7 +88,7 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
   const numberOfAsteroids = randomInt(5, 15);
   for (let i = 0; i < numberOfAsteroids; i++) {
     const texture = textures[randomInArray(["asteroid01", "asteroid02"])];
-    const scale = Math.random() / 2 + 0.5;
+    const scale = random(0.5, 1.2);
     const [x, y] = randomScreenPositionInBounds(app.view.width, app.view.height, 0.1);
     asteroids.push({
       ...newPhysicalBody({
@@ -94,10 +96,11 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
         scale: new PIXI.Point(scale, scale),
         texture: texture,
       }),
+      crashingDuration: 0,
       orbitAngle: angle(earth.sprite, {x, y}),
       orbitDistance: dist(earth.sprite, {x, y}),
       rotationSpeed: randomRotation(8),
-      speed: Math.random() - 0.5,
+      speed: random(-0.5, 0.5),
     });
   }
 
@@ -218,6 +221,21 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
     speedNeedle.rotation = Math.min(-Math.PI + speed * GOOD_LANDING_ANGLE, 0);
 
     for (const asteroid of asteroids) {
+      for (const body of [...asteroids, ...planets]) {
+        if (asteroid.id === body.id) {
+          continue;
+        }
+        const asteroidDistance = distToSurface(asteroid, body);
+        if (asteroid.crashingDuration-- > 0) {
+          asteroid.orbitDistance = asteroid.orbitDistance + randomSign() * asteroid.radius;
+        } else if (asteroidDistance <= 0) {
+          asteroid.crashingDuration = body.radius;
+          const {x, y} = asteroid.sprite;
+          asteroid.rotationSpeed = randomRotation(10);
+          asteroid.speed = random(asteroid.speed);
+          addCrash({duration: 40, x, y});
+        }
+      }
       asteroid.sprite.rotation += asteroid.rotationSpeed * delta;
       if (distToSurface(asteroid, rocket) <= 0 && speed > 0) {
         const {x, y} = rocket.sprite;
