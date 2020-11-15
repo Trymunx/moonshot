@@ -132,12 +132,14 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
   speedometer.scale.set(0.6);
   speedometer.x = 20;
   speedometer.y = app.view.height - 20;
+  speedometer.zIndex = 1000;
   const speedNeedle = new PIXI.Sprite(textures["speedometer_arrow"]);
   speedNeedle.anchor.set(0, 0.5);
   speedNeedle.scale.set(0.6, 1);
   speedNeedle.rotation = -Math.PI;
   speedNeedle.x = speedometer.x + speedometer.width / 2;
   speedNeedle.y = speedometer.y - speedometer.height * 0.19;
+  speedNeedle.zIndex = 1001;
 
   // Add to stage
   for (const planet of planets) {
@@ -149,6 +151,7 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
   app.stage.addChild(rocket.sprite, speedometer, speedNeedle, arrow);
 
   const crashes: CrashInstance[] = [];
+  const astroidCrashes: CrashInstance[] = [];
 
   const addCrash = ({x, y, duration}: CrashProps) => {
     const crash = new PIXI.Sprite(textures["crash"]);
@@ -158,6 +161,19 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
     crash.anchor.set(0.5);
     crashes.push({
       duration,
+      sprite: crash,
+    });
+    app.stage.addChild(crash);
+  };
+  const crashAsteroid = ({x, y, duration, size}: CrashProps) => {
+    const crash = new PIXI.Sprite(textures["impact02"]);
+    crash.x = x;
+    crash.y = y;
+    crash.scale.set(0.1);
+    crash.anchor.set(0.5);
+    astroidCrashes.push({
+      duration,
+      size,
       sprite: crash,
     });
     app.stage.addChild(crash);
@@ -235,7 +251,7 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
           const {x, y} = asteroid.sprite;
           asteroid.rotationSpeed = randomRotation(10);
           asteroid.speed = random(asteroid.speed);
-          addCrash({duration: 40, x, y});
+          crashAsteroid({duration: 40, size: asteroid.radius * 2, x, y});
         }
       }
       asteroid.sprite.rotation += asteroid.rotationSpeed * delta;
@@ -327,6 +343,22 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
         crash.duration -= delta;
       }
     }
+
+    for (let i = astroidCrashes.length; i >= 0; i--) {
+      const crash = astroidCrashes[i];
+      if (crash === undefined) {
+        continue;
+      }
+      if (crash.duration < 0) {
+        astroidCrashes.splice(i, 1);
+        app.stage.removeChild(crash.sprite);
+      } else {
+        crash.sprite.scale.set(Math.min(crash.sprite.scale.x + 0.05, crash.size));
+        crash.sprite.alpha -= 0.01;
+        crash.duration -= delta;
+      }
+    }
+
     if (outOfBounds(rocket, app.view)) {
       reset(rocket);
     }

@@ -41,11 +41,13 @@ export type DraggingData = {
 
 export type CrashInstance = {
   duration: number;
+  size?: number;
   sprite: PIXI.Sprite;
 };
 
 export type CrashProps = {
   duration: number;
+  size?: number;
   x: number;
   y: number;
 };
