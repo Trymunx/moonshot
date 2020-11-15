@@ -37,6 +37,8 @@ const DRAG_MODIFIER = 0.02;
 const THRUST_POWER = 0.01;
 const GOOD_LANDING_ANGLE = 0.45 / MAX_LANDING_VELOCITY;
 
+let SLOWDOWN = 3;
+
 export const runGame = (textures: Record<string, PIXI.Texture | undefined>): void => {
   const app = new PIXI.Application({
     antialias: true,
@@ -193,6 +195,7 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
   });
 
   app.ticker.add(delta => {
+    delta = delta / (draggingData.dragging ? SLOWDOWN : 1);
     let closestPlanet: Planet & {distance: number;};
     const gravityVector: Point = {x: 0, y: 0};
 
