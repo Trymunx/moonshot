@@ -1,5 +1,5 @@
 import * as PIXI from "pixi.js";
-import { PhysicalBody, Planet, Point, Rect, Rocket, Vector } from "./types";
+import { PhysicalBody, Planet, Point, Range, Rect, Rocket, Vector } from "./types";
 
 /**
  * angleFromVector takes a velocity vector and returns the angle of the vector.
@@ -22,7 +22,7 @@ export const averageAngle = (a: number, b: number): number => Math.atan2(
 
 export const calculateGravityVector = (planet: Planet, body: PhysicalBody): Point => {
   const distance = Math.max(0.01, dist(planet.sprite, body.sprite));
-  return angleToVector(angle(planet.sprite, body.sprite), planet.radius / (2 * distance));
+  return angleToVector(angle(planet.sprite, body.sprite), planet.radius / distance);
 };
 
 export const calculateSpeed = ({ x, y }: Point): number => Math.abs(Math.hypot(x, y));
@@ -49,15 +49,26 @@ export const line = (p: Point, a: number): {c: number, m: number} => {
   return { c, m };
 };
 
+export const mapToRange = ([inMin, inMax]: Range, [outMin, outMax]: Range) =>
+  (v: number): number => {
+    if (v < inMin || v > inMax) {
+      throw new Error(
+        `Value must be between min and max in mapToRange, received ${v} in [${inMin}..${inMax}]`
+      );
+    }
+    return (v - inMin) * (outMax - outMin) / (inMax - inMin) + outMin;
+  };
+
 interface PhysicalBodyOptions {
-  anchor?: PIXI.Point;
+  anchor?: Point;
   buttonMode?: boolean;
-  initialPosition: PIXI.Point;
+  initialPosition: Point;
   interactive?: boolean;
   rotation?: number;
-  scale?: PIXI.Point;
+  scale?: Point;
+  terminalVelocity?: number;
   texture: PIXI.Texture;
-  velocity?: PIXI.Point;
+  velocity?: Point;
 }
 
 const idGenerator = () => {
@@ -66,15 +77,18 @@ const idGenerator = () => {
 };
 const getNewID = idGenerator();
 
+export const point = (x = 0, y = x): Point => ({ x, y });
+
 export const newPhysicalBody = ({
-  anchor = new PIXI.Point(0.5, 0.5),
+  anchor = point(0.5),
   buttonMode = false,
   initialPosition,
   interactive = false,
   rotation = 0,
-  scale = new PIXI.Point(1, 1),
+  scale = point(1),
+  terminalVelocity,
   texture,
-  velocity = new PIXI.Point(),
+  velocity = point(),
 }: PhysicalBodyOptions): PhysicalBody => {
   const sprite = new PIXI.Sprite(texture);
   sprite.anchor.set(anchor.x, anchor.y);
@@ -89,6 +103,7 @@ export const newPhysicalBody = ({
     initialPosition,
     radius: Math.min(sprite.width, sprite.height) / 2,
     sprite,
+    terminalVelocity,
     velocity: velocity,
   };
 };
@@ -127,5 +142,9 @@ export const reset = (rocket: Rocket): void => {
 };
 
 export const updateVelocity = (body: PhysicalBody, x: number, y = x): void => {
-  body.velocity.set(x, y);
+  if (body.terminalVelocity) {
+    x = x > 0 ? Math.min(body.terminalVelocity, x) : Math.max(-body.terminalVelocity, x);
+    y = y > 0 ? Math.min(body.terminalVelocity, y) : Math.max(-body.terminalVelocity, y);
+  }
+  body.velocity = { x, y };
 };

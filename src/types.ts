@@ -1,9 +1,10 @@
 export interface PhysicalBody {
   id: number;
-  initialPosition?: PIXI.Point;
+  initialPosition: Point;
   radius: number;
   sprite: PIXI.Sprite;
-  velocity?: PIXI.Point;
+  terminalVelocity?: number;
+  velocity: Point;
 }
 
 export interface Planet extends PhysicalBody {
@@ -31,6 +32,9 @@ export type Point = {
   x: number;
   y: number;
 }
+
+export type Tuple<T> = [T, T];
+export type Range = Tuple<number>;
 
 export type Vector = Point;
 

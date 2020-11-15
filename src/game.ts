@@ -9,8 +9,10 @@ import {
   distToSurface,
   isInBounds,
   line,
+  mapToRange,
   newPhysicalBody,
   outOfBounds,
+  point,
   random,
   randomInArray,
   randomInt,
@@ -31,14 +33,15 @@ import {
 } from "./types";
 
 const ARROW_SCALE_MODIFIER = 1000; // Larger number means smaller arrow
-const AIR_RESISTANCE = 0.02;
-const AIR_RESISTANCE_RADIUS = 2;
+const AIR_RESISTANCE = 0.25;
+const AIR_RESISTANCE_RADIUS = 1.5;
 const LANDING_DISTANCE = 60;
 const LANDING_VELOCITY = 1;
-const MAX_LANDING_VELOCITY = 2;
+const MAX_LANDING_VELOCITY = 4;
 const DRAG_MODIFIER = 0.02;
 const THRUST_POWER = 0.01;
 const GOOD_LANDING_ANGLE = 0.45 / MAX_LANDING_VELOCITY;
+const TERMINAL_VELOCITY = 50;
 
 const SLOWDOWN = 3;
 
@@ -70,8 +73,8 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
   const earthInitialPosition = [app.view.width * 0.25, app.view.height * 0.5];
   const earth: Planet = {
     ...newPhysicalBody({
-      initialPosition: new PIXI.Point(...earthInitialPosition),
-      scale: new PIXI.Point(1, 1),
+      initialPosition: point(...earthInitialPosition),
+      scale: point(1),
       texture: textures["earth"],
     }),
     rotationSpeed: randomRotation(5),
@@ -85,8 +88,8 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
     const moonPosition = [app.view.width * 0.75, app.view.height * 0.4];
     planets.push({
       ...newPhysicalBody({
-        initialPosition: new PIXI.Point(...moonPosition),
-        scale: new PIXI.Point(0.6, 0.65),
+        initialPosition: point(...moonPosition),
+        scale: point(0.6, 0.65),
         texture: textures["moon"],
       }),
       rotationSpeed: randomRotation(6),
@@ -102,8 +105,8 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
     const [x, y] = randomScreenPositionInBounds(app.view, 0.1);
     asteroids.push({
       ...newPhysicalBody({
-        initialPosition: new PIXI.Point(x, y),
-        scale: new PIXI.Point(scale, scale),
+        initialPosition: point(x, y),
+        scale: point(scale, scale),
         texture: texture,
       }),
       crashingDuration: 0,
@@ -116,15 +119,16 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
 
   const rocket: Rocket = {
     ...newPhysicalBody({
-      anchor: new PIXI.Point(0.5, 0.75),
-      initialPosition: new PIXI.Point(
+      anchor: point(0.5, 0.75),
+      initialPosition: point(
         earthInitialPosition[0],
         earthInitialPosition[1] - earth.radius,
       ),
       rotation: Math.PI * 1.5,
-      scale: new PIXI.Point(0.3, 0.3),
+      scale: point(0.3),
+      terminalVelocity: TERMINAL_VELOCITY,
       texture: textures["rocket"],
-      velocity: new PIXI.Point(0),
+      velocity: point(0),
     }),
     landingAngle: 0,
     thrusterFuel: 0,
@@ -308,12 +312,17 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
       const landingVector =
         angleToVector(angle(closestPlanet.sprite, rocket.sprite), LANDING_VELOCITY);
 
+      const d = LANDING_DISTANCE;
+      const m = mapToRange([0, d], [1, 0])(distance);
+      const resistance = 1 - AIR_RESISTANCE * m;
+
       if (speed > MAX_LANDING_VELOCITY) {
         updateVelocity(
           rocket,
-          rocket.velocity.x * (1 - AIR_RESISTANCE),
-          rocket.velocity.y * (1 - AIR_RESISTANCE),
+          (rocket.velocity.x + gravityVector.x) * resistance,
+          (rocket.velocity.y + gravityVector.y) * resistance,
         );
+        rocket.sprite.rotation = angleFromVector(rocket.velocity);
       } else {
         updateVelocity(rocket, landingVector.x, landingVector.y);
         rocket.sprite.rotation = angle(rocket.sprite, closestPlanet.sprite);
@@ -321,11 +330,14 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
           Math.PI + closestPlanet.sprite.rotation - angle(closestPlanet.sprite, rocket.sprite);
       }
 
-    } else if (distance < closestPlanet.sprite.width * AIR_RESISTANCE_RADIUS) {
+    } else if (distance < closestPlanet.radius * AIR_RESISTANCE_RADIUS) {
+      const d = closestPlanet.radius * AIR_RESISTANCE_RADIUS;
+      const m = mapToRange([0, d], [1, 0])(distance);
+      const resistance = 1 - AIR_RESISTANCE * m;
       updateVelocity(
         rocket,
-        rocket.velocity.x * (1 - AIR_RESISTANCE) + gravityVector.x,
-        rocket.velocity.y * (1 - AIR_RESISTANCE) + gravityVector.y,
+        (rocket.velocity.x + gravityVector.x) * resistance,
+        (rocket.velocity.y + gravityVector.y) * resistance,
       );
       rocket.sprite.rotation = angleFromVector(rocket.velocity);
     } else {
