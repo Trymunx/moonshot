@@ -125,20 +125,35 @@ export const randomInt = (a: number, b?: number): number => {
 
 export const randomInArray = <T>(a: T[]): T => a[randomInt(a.length)];
 
-export const randomRotation = (x: number): number => randomSign() * randomInt(1, x) / 100;
+export const randomRotation = (x: number): number => randomSign() * random(x) / 100;
 
 export const randomScreenPositionInBounds = (r: Rect, x: number): [number, number] => [
   random(r.width * x, r.width * (1 - x)),
   random(r.height * x, r.height * (1 - x)),
 ];
 
-export const reset = (rocket: Rocket): void => {
+export const randomScreenEdge = (rect: Rect): [number, number] => {
+  const r = random();
+  if (r < 0.25) {
+    return [0, random(rect.height)];
+  } else if (r < 0.5) {
+    return [rect.width, random(rect.height)];
+  } else if (r < 0.75) {
+    return [random(rect.width), 0];
+  } else {
+    return [random(rect.width), rect.height];
+  }
+};
+
+export const resetRocket = (rocket: Rocket, { x, y }: Point): void => {
   rocket.sprite.x = rocket.initialPosition.x;
   rocket.sprite.y = rocket.initialPosition.y;
   updateVelocity(rocket, 0, 0);
   rocket.sprite.rotation = Math.PI * 1.5;
   rocket.sprite.visible = true;
-  rocket.thrusterFuel = 0;
+  rocket.launching = false;
+  rocket.thrusterFuel = 20;
+  rocket.homePlanetCoords = { x, y };
 };
 
 export const updateVelocity = (body: PhysicalBody, x: number, y = x): void => {

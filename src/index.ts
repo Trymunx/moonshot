@@ -1,5 +1,5 @@
 import * as PIXI from "pixi.js";
-import {runGame} from "./game";
+import { runGame } from "./game";
 
 const textures = {};
 const loader = new PIXI.Loader();
