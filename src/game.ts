@@ -147,7 +147,7 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
       texture: textures["rocket"],
       velocity: point(0),
     }),
-    homePlanetCoords: point(...earthInitialPosition),
+    homePlanetID: earth.id,
     landingAngle: 0,
     launching: false,
     thrusterFuel: 20,
@@ -350,11 +350,9 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
     }
 
     if (speed <= 0 && distance <= 0 && rocket.thrusterFuel <= 0
-      && !(closestPlanet.sprite.x === rocket.homePlanetCoords.x
-        && closestPlanet.sprite.y === rocket.homePlanetCoords.y)) {
+      && closestPlanet.id !== rocket.homePlanetID) {
       scoreText.text = `Score: ${++score}`;
-      const { x, y } = closestPlanet.sprite;
-      rocket.homePlanetCoords = { x, y };
+      rocket.homePlanetID = closestPlanet.id;
 
       if (random() < 0.01 && asteroids.length < 40) {
         addAsteroid();

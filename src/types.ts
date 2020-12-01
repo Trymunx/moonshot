@@ -21,7 +21,7 @@ export interface Asteroid extends PhysicalBody {
 }
 
 export interface Rocket extends PhysicalBody {
-  homePlanetCoords: Point;
+  homePlanetID: number;
   landingAngle: number;
   launching: boolean;
   thrusterFuel: number;
