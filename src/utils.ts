@@ -145,7 +145,7 @@ export const randomScreenEdge = (rect: Rect): [number, number] => {
   }
 };
 
-export const resetRocket = (rocket: Rocket, { x, y }: Point): void => {
+export const resetRocket = (rocket: Rocket, id: number): void => {
   rocket.sprite.x = rocket.initialPosition.x;
   rocket.sprite.y = rocket.initialPosition.y;
   updateVelocity(rocket, 0, 0);
@@ -153,7 +153,7 @@ export const resetRocket = (rocket: Rocket, { x, y }: Point): void => {
   rocket.sprite.visible = true;
   rocket.launching = false;
   rocket.thrusterFuel = 20;
-  rocket.homePlanetCoords = { x, y };
+  rocket.homePlanetID = id;
 };
 
 export const updateVelocity = (body: PhysicalBody, x: number, y = x): void => {

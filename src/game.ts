@@ -18,7 +18,6 @@ import {
   randomRotation,
   randomScreenEdge,
   randomScreenPositionInBounds,
-  randomSign,
   resetRocket,
   updateVelocity,
 } from "./utils";
@@ -38,10 +37,9 @@ const ARROW_SCALE_MODIFIER = 1000; // Larger number means smaller arrow
 const AIR_RESISTANCE = 0.25;
 const AIR_RESISTANCE_RADIUS = 1.5;
 const LANDING_DISTANCE = 60;
-const LANDING_VELOCITY = 1;
+const LANDING_VELOCITY = 2;
 const MAX_LANDING_VELOCITY = 4;
 const DRAG_MODIFIER = 0.02;
-// const THRUST_POWER = 0.01;
 const GOOD_LANDING_ANGLE = 0.45 / MAX_LANDING_VELOCITY;
 const TERMINAL_VELOCITY = 50;
 const SLOWDOWN = 3;
@@ -71,7 +69,6 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
   const a1 = angle({ x: 0, y: app.view.height }, appCenter);
   const a2 = angle({ x: app.view.width, y: 0 }, appCenter);
   const a3 = angle({ x: app.view.width, y: app.view.height }, appCenter);
-  const maxWH = Math.max(app.view.width, app.view.height);
   const minWH = Math.min(app.view.width, app.view.height);
 
   /**
@@ -105,10 +102,10 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
         scale: point(0.6, 0.65),
         texture: textures["moon"],
       }),
-      orbitAngle: angle(earth.sprite, point(...moonPosition)),
+      orbitAngle: random(Math.PI * 2),
       orbitDistance: dist(earth.sprite, point(...moonPosition)),
       rotationSpeed: randomRotation(6),
-      speed: random(-0.2, 0.2),
+      speed: random(-0.4, 0.4),
     };
     planets.push(moon);
   }
@@ -154,7 +151,7 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
   };
 
   const reset = () => {
-    resetRocket(rocket, point(...earthInitialPosition));
+    resetRocket(rocket, earth.id);
     score = 0;
     scoreText.text = "Score: 0";
   };
@@ -232,7 +229,7 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
       crashingDuration: 0,
       // currentDistance: dist(earth.sprite, { x, y }),
       orbitAngle: angle(earth.sprite, { x, y }),
-      orbitDistance: random(earth.radius, dist(earth.sprite, { x, y })),
+      orbitDistance: random(earth.radius * 3, dist(earth.sprite, { x, y })),
       rotationSpeed: randomRotation(8),
       speed: random(-0.5, 0.5),
     };
@@ -316,19 +313,19 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
     // Update speedometer needle
     speedNeedle.rotation = Math.min(-Math.PI + speed * GOOD_LANDING_ANGLE, 0);
 
-    for (const asteroid of asteroids) {
+    for (let i = asteroids.length; i >= 0; i--) {
+      const asteroid = asteroids[i];
+      if (!asteroid) {
+        continue;
+      }
       for (const body of [...asteroids, ...planets]) {
         if (asteroid.id === body.id) {
           continue;
         }
-        const asteroidDistance = distToSurface(asteroid, body);
-        if (asteroid.crashingDuration-- > 0) {
-          asteroid.orbitDistance = asteroid.orbitDistance + randomSign() * asteroid.radius;
-        } else if (asteroidDistance <= 0) {
-          asteroid.crashingDuration = body.radius;
+        if (distToSurface(asteroid, body) <= 0) {
           const { x, y } = asteroid.sprite;
-          asteroid.rotationSpeed = randomRotation(10);
-          asteroid.speed = random(asteroid.speed);
+          app.stage.removeChild(asteroid.sprite);
+          asteroids.splice(i, 1);
           crashAsteroid({ duration: 40, size: asteroid.radius * 2, x, y });
         }
       }
@@ -354,7 +351,7 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
       scoreText.text = `Score: ${++score}`;
       rocket.homePlanetID = closestPlanet.id;
 
-      if (random() < 0.01 && asteroids.length < 40) {
+      if (random() < 0.5 && asteroids.length < 40) {
         addAsteroid();
       }
     }

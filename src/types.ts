@@ -8,12 +8,14 @@ export interface PhysicalBody {
 }
 
 export interface Planet extends PhysicalBody {
+  orbitAngle?: number;
+  orbitDistance?: number;
   rotationSpeed: number;
+  speed?: number;
 }
 
 export interface Asteroid extends PhysicalBody {
   crashingDuration: number;
-  // currentDistance: number;
   orbitAngle: number;
   orbitDistance: number;
   rotationSpeed: number;
