@@ -95,7 +95,7 @@ export const runGame = (textures: Record<string, PIXI.Texture | undefined>): voi
   for (let i = 0; i < numberOfMoons; i++) {
     // const moonPosition = randomScreenPositionInBounds(app.view, 0.1);
     // const moonPosition = [app.view.width * 0.75, app.view.height * 0.4];
-    const moonPosition = [minWH * 0.4, minWH * 0.4];
+    const moonPosition = [minWH * 0.9, minWH * 0.9];
     const moon = {
       ...newPhysicalBody({
         initialPosition: point(...moonPosition),
